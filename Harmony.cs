@@ -18,8 +18,7 @@ namespace LitharsMending
             {
                 if(__instance.m_GearItem && __instance.m_GearItem.m_ClothingItem && __instance.m_GearItem.CurrentHP == 0)
                 {
-                    LitharsMendingMain.buttonRepairMain.SetActive(enable);
-                    LitharsMendingMain.buttonRepairMain.transform.localPosition = new Vector3(0, -60, 0);
+                    ActivateAndUpdate.ActivateRepairButton(enable);
                 }                
             }           
         }
@@ -34,19 +33,7 @@ namespace LitharsMending
             {
                 if (__instance.m_GearItem && __instance.m_GearItem.m_ClothingItem && __instance.m_GearItem.CurrentHP == 0)
                 {
-                    LitharsMendingMain.repairPanel.SetActive(true);
-                    LitharsMendingMain.repairPanelButtons.SetActive(true);
-
-                    float chanceSuccessfullRepair = __instance.GetChanceSuccessfullRepair(__instance.m_GearItem);
-                    float chanceActionSuccess = __instance.GetChanceActionSuccess(chanceSuccessfullRepair);
-                    Repairable repairable = __instance.m_GearItem.m_Repairable;
-                    string expandedDurationString = Utils.GetExpandedDurationString(__instance.GetModifiedRepairDuration(repairable, repairable.m_DurationMinutes));
-
-                    __instance.m_Repair_AmountLabel.text = __instance.GetConditionIncreaseFromRepair(__instance.m_GearItem) + "%";
-                    __instance.m_Repair_ChanceSuccessLabel.text = chanceActionSuccess.ToString("F0") + "%";
-                    __instance.m_Repair_ConditionCapLabel.text = repairable.m_RepairConditionCap.ToString("F0") + "%";
-                    __instance.m_Repair_TimeLabel.text = expandedDurationString;
-                    __instance.UpdateWeightAndConditionLabels();
+                   ActivateAndUpdate.ActivateRepairPanel(__instance);
                 }
             }
         }
@@ -95,6 +82,7 @@ namespace LitharsMending
             }
         }
     }
+
     [HarmonyLib.HarmonyPatch(typeof(Panel_Inventory_Examine), "GetConditionIncreaseFromRepair", new Type[] { typeof(GearItem) })]
     public class GetConditionIncreaseFromRepair_Patch
     {
@@ -112,6 +100,31 @@ namespace LitharsMending
                             __result = __result * (temp / 100);
                         }
                     }
+                }
+            }
+        }
+
+
+        [HarmonyLib.HarmonyPatch(typeof(Panel_Inventory_Examine), "RepairFinished")]
+        public class RepairFinished_Patch
+        {
+            public static void Postfix(ref Panel_Inventory_Examine __instance)
+            {
+                if (Settings.options.modEnabled)
+                {
+                    if (__instance.m_GearItem && __instance.m_GearItem.m_ClothingItem)
+                    {
+                        if (__instance.m_GearItem.m_CurrentHP > 0 && __instance.m_GearItem.m_WornOut)
+                        {
+                            __instance.m_GearItem.ForceNotWornOut();
+                        }
+
+                        if (!__instance.m_GearItem.m_WornOut)
+                        {
+                            ActivateAndUpdate.ActivateRepairButton(__instance);
+                            ActivateAndUpdate.ActivateRepairPanel(__instance);
+                        }
+                    }                    
                 }
             }
         }
